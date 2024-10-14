@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz de Inglês</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #e9ecef;
+            color: #343a40;
+        }
+        header {
+            background-color: #007bff;
+            padding: 15px;
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        nav {
+            margin: 10px 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        nav button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            background-color: #0056b3;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        nav button:hover {
+            background-color: #004494;
+        }
+        .container {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+        }
+        .correct {
+            color: blue;
+        }
+        .wrong {
+            color: red;
+        }
+        .ranking {
+            margin-top: 20px;
+        }
+        .input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .input-container input {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            flex: 1;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Quiz de Inglês</h1>
+    </header>
+    <nav>
+        <button onclick="mostrarQuiz()">Iniciar Quiz</button>
+        <button onclick="mostrarPalavrasSalvas()">Ver Palavras Salvas</button>
+        <button onclick="mostrarMelhorPontuacao()">Mostrar Melhor Pontuação</button>
+        <div class="input-container">
+            <input type="text" id="novaPalavra" placeholder="Palavra em Inglês" required>
+            <input type="text" id="novaTraducao" placeholder="Tradução" required>
+            <button onclick="adicionarPalavra()">Adicionar Palavra</button>
+        </div>
+    </nav>
+
+    <div id="quizContainer" class="container" style="display: none;">
+        <h2>Iniciar Quiz</h2>
+        <input type="text" id="nomeUsuario" placeholder="Digite seu nome" required>
+        <input type="number" id="quantidadePalavras" placeholder="Quantas palavras?" min="1" required>
+        <button onclick="começarQuiz()">Começar</button>
+        <div id="mensagem"></div>
+        <div id="questaoContainer" style="display: none;">
+            <h3 id="questao"></h3>
+            <input type="text" id="respostaUsuario" placeholder="Sua resposta" onkeypress="verificarEnter(event)">
+            <button onclick="verificarResposta()">Responder</button>
+            <button onclick="pularPalavra()">Pular</button>
+        </div>
+        <div id="gabaritoContainer" style="display: none;">
+            <h4>Gabarito</h4>
+            <p>Respostas Certas: <span id="contadorAcertos" class="correct">0</span></p>
+            <p>Respostas Erradas: <span id="contadorErros" class="wrong">0</span></p>
+            <div id="gabarito"></div>
+            <div class="ranking" id="rankingContainer"></div>
+        </div>
+    </div>
+
+    <div id="palavrasSalvasContainer" class="container" style="display: none;">
+        <h2>Palavras Salvas</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Palavra em Inglês</th>
+                    <th>Tradução</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="palavrasSalvas">
+                <!-- As palavras salvas serão exibidas aqui -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let palavras = JSON.parse(localStorage.getItem('palavras')) || [];
+        let palavrasSelecionadas = [];
+        let acertos = 0;
+        let erros = 0;
+        let nomeUsuario = '';
+        let indiceAtual = 0;
+        let respostasUsuario = [];
+        let ranking = JSON.parse(localStorage.getItem('ranking')) || [];
+        let contadorAcertos = 0;
+        let contadorErros = 0;
+
+        // Adicione suas palavras básicas aqui
+        palavras.push(
+            { palavra: "water", traducao: "água" },
+            { palavra: "apple", traducao: "maçã" },
+            { palavra: "house", traducao: "casa" },
+            { palavra: "car", traducao: "carro" },
+            { palavra: "book", traducao: "livro" }
+            // Adicione mais palavras aqui
+        );
+
+        function mostrarQuiz() {
+            document.getElementById('quizContainer').style.display = 'block';
+            document.getElementById('palavrasSalvasContainer').style.display = 'none';
+        }
+
+        function começarQuiz() {
+            nomeUsuario = document.getElementById('nomeUsuario').value.trim();
+            const quantidade = parseInt(document.getElementById('quantidadePalavras').value);
+            if (quantidade <= 0) return;
+
+            palavrasSelecionadas = [];
+            acertos = 0;
+            erros = 0;
+            respostasUsuario = [];
+            indiceAtual = 0;
+            contadorAcertos = 0;
+            contadorErros = 0;
+
+            document.getElementById('contadorAcertos').textContent = contadorAcertos;
+            document.getElementById('contadorErros').textContent = contadorErros;
+            document.getElementById('mensagem').textContent = '';
+
+            // Seleciona palavras únicas
+            const palavrasDisponiveis = [...palavras];
+            for (let i = 0; i < quantidade; i++) {
+                const randomIndex = Math.floor(Math.random() * palavrasDisponiveis.length);
+                palavrasSelecionadas.push(palavrasDisponiveis[randomIndex]);
+                palavrasDisponiveis.splice(randomIndex, 1); // Remove a palavra selecionada para evitar repetição
+            }
+
+            mostrarQuestao();
+        }
+
+        function mostrarQuestao() {
+            document.getElementById('questaoContainer').style.display = 'block';
+            document.getElementById('gabaritoContainer').style.display = 'none';
+            const questao = palavrasSelecionadas[indiceAtual];
+            document.getElementById('questao').textContent = `Traduza a palavra: ${questao.palavra}`;
+            document.getElementById('respostaUsuario').value = '';
+        }
+
+        function verificarEnter(event) {
+            if (event.key === "Enter") {
+                verificarResposta();
+            }
+        }
+
+        function normalizarTexto(texto) {
+            return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
+        function verificarResposta() {
+            const questao = palavrasSelecionadas[indiceAtual];
+            const resposta = document.getElementById('respostaUsuario').value.trim();
+            respostasUsuario.push(resposta);
+
+            if (normalizarTexto(resposta) === normalizarTexto(questao.traducao)) {
+                contadorAcertos++;
+            } else {
+                contadorErros++;
+            }
+
+            // Atualiza contadores na interface
+            document.getElementById('contadorAcertos').textContent = contadorAcertos;
+            document.getElementById('contadorErros').textContent = contadorErros;
+
+            indiceAtual++;
+            if (indiceAtual < palavrasSelecionadas.length) {
+                mostrarQuestao();
+            } else {
+                mostrarGabarito();
+            }
+        }
+
+        function pularPalavra() {
+            respostasUsuario.push('Pulei');
+            contadorErros++;
+            document.getElementById('contadorErros').textContent = contadorErros;
+
+            indiceAtual++;
+            if (indiceAtual < palavrasSelecionadas.length) {
+                mostrarQuestao();
+            } else {
+                mostrarGabarito();
+            }
+        }
+
+        function mostrarGabarito() {
+            document.getElementById('questaoContainer').style.display = 'none';
+            document.getElementById('gabaritoContainer').style.display = 'block';
+            const gabaritoDiv = document.getElementById('gabarito');
+            gabaritoDiv.innerHTML = '';
+
+            palavrasSelecionadas.forEach((p, index) => {
+                const respostaCorreta = document.createElement('div');
+                if (normalizarTexto(respostasUsuario[index]) === normalizarTexto(p.traducao)) {
+                    respostaCorreta.innerHTML = `<span class="correct">${p.palavra} - Correta: ${p.traducao}</span>`;
+                } else {
+                    respostaCorreta.innerHTML = `<span class="wrong">${p.palavra} - Você respondeu: <strong>${respostasUsuario[index]}</strong> - Correta: ${p.traducao}</span>`;
+                }
+                gabaritoDiv.appendChild(respostaCorreta);
+            });
+
+            salvarNoRanking();
+            mostrarRanking();
+        }
+
+        function salvarNoRanking() {
+            const usuarioRanking = { nome: nomeUsuario, acertos: contadorAcertos };
+            ranking.push(usuarioRanking);
+            localStorage.setItem('ranking', JSON.stringify(ranking));
+        }
+
+        function mostrarRanking() {
+            const rankingDiv = document.getElementById('rankingContainer');
+            rankingDiv.innerHTML = '<h4>Ranking de Acertos</h4>';
+            ranking.forEach((item, index) => {
+                rankingDiv.innerHTML += `<div>${index + 1}. ${item.nome} - Acertos: ${item.acertos}</div>`;
+            });
+        }
+
+        function mostrarPalavrasSalvas() {
+            document.getElementById('palavrasSalvasContainer').style.display = 'block';
+            document.getElementById('quizContainer').style.display = 'none';
+            const palavrasDiv = document.getElementById('palavrasSalvas');
+            palavrasDiv.innerHTML = '';
+
+            palavras.forEach((p, index) => {
+                palavrasDiv.innerHTML += `
+                    <tr>
+                        <td>${p.palavra}</td>
+                        <td>${p.traducao}</td>
+                        <td>
+                            <button onclick="editarPalavra(${index})">Editar</button>
+                            <button onclick="excluirPalavra(${index})">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function adicionarPalavra() {
+            const novaPalavra = document.getElementById('novaPalavra').value.trim();
+            const novaTraducao = document.getElementById('novaTraducao').value.trim();
+
+            if (novaPalavra && novaTraducao) {
+                palavras.push({ palavra: novaPalavra, traducao: novaTraducao });
+                localStorage.setItem('palavras', JSON.stringify(palavras));
+                document.getElementById('novaPalavra').value = '';
+                document.getElementById('novaTraducao').value = '';
+                mostrarPalavrasSalvas(); // Atualiza a lista de palavras salvas
+            }
+        }
+
+        function editarPalavra(index) {
+            const palavra = palavras[index];
+            const novaPalavra = prompt("Editar Palavra:", palavra.palavra);
+            const novaTraducao = prompt("Editar Tradução:", palavra.traducao);
+
+            if (novaPalavra && novaTraducao) {
+                palavras[index] = { palavra: novaPalavra, traducao: novaTraducao };
+                localStorage.setItem('palavras', JSON.stringify(palavras));
+                mostrarPalavrasSalvas(); // Atualiza a lista de palavras salvas
+            }
+        }
+
+        function excluirPalavra(index) {
+            if (confirm("Tem certeza que deseja excluir esta palavra?")) {
+                palavras.splice(index, 1);
+                localStorage.setItem('palavras', JSON.stringify(palavras));
+                mostrarPalavrasSalvas(); // Atualiza a lista de palavras salvas
+            }
+        }
+
+        function mostrarMelhorPontuacao() {
+            const melhorPontuacao = Math.max(...ranking.map(r => r.acertos), 0);
+            alert(`Melhor Pontuação: ${melhorPontuacao} acertos`);
+        }
+    </script>
+</body>
+</html>
